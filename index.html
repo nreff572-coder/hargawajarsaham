@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benjamin Graham Fair Value Calculator</title>
+    <style>
+        :root {
+            --bg-color: #f1f5f9;
+            --border-color: #000000;
+            --pastel-blue: #bae6fd;
+            --pastel-yellow: #fef08a;
+            --pastel-green: #bbf7d0;
+            --pastel-purple: #e9d5ff;
+            --pastel-pink: #fbcfe8;
+            --pastel-cyan: #a5f3fc;
+            --white: #ffffff;
+            --danger: #fca5a5;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: var(--bg-color);
+            color: var(--border-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .card {
+            background-color: var(--white);
+            border: 3px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 10px 10px 0px var(--border-color);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translate(-4px, -4px);
+            box-shadow: 14px 14px 0px var(--border-color);
+        }
+
+        .card-blue { background-color: var(--pastel-blue); }
+        .card-yellow { background-color: var(--pastel-yellow); }
+        .card-green { background-color: var(--pastel-green); }
+        .card-purple { background-color: var(--pastel-purple); }
+        .card-pink { background-color: var(--pastel-pink); }
+        .card-cyan { background-color: var(--pastel-cyan); }
+
+        h1, h2, h3 {
+            font-weight: 800;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        h1 { font-size: 1.8rem; }
+        h2 { font-size: 1.4rem; border-bottom: 2px dashed var(--border-color); padding-bottom: 5px; margin-bottom: 15px;}
+        p { margin-bottom: 10px; }
+
+        .text-small { font-size: 0.9rem; font-weight: bold; }
+        .formula-box {
+            background: var(--white);
+            border: 2px solid var(--border-color);
+            padding: 10px;
+            border-radius: 8px;
+            display: inline-block;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        /* Menggunakan input text agar bisa menangkap string berformat */
+        input {
+            width: 100%;
+            padding: 12px;
+            font-family: inherit;
+            font-size: 1rem;
+            border: 3px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--white);
+            outline: none;
+            transition: box-shadow 0.2s ease;
+        }
+
+        input:focus {
+            box-shadow: 4px 4px 0px var(--border-color);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            border: 3px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: var(--white);
+            box-shadow: 4px 4px 0px var(--border-color);
+            transition: all 0.1s ease;
+        }
+
+        button.primary { background-color: var(--pastel-yellow); }
+        button.secondary { background-color: var(--white); }
+
+        button:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px var(--border-color);
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+            background: var(--border-color);
+            color: var(--white);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            text-align: center;
+            line-height: 20px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: var(--white);
+            color: var(--border-color);
+            border: 2px solid var(--border-color);
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            box-shadow: 4px 4px 0px var(--border-color);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-weight: normal;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .hidden { display: none !important; }
+        
+        .result-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .result-item {
+            background: var(--white);
+            border: 2px solid var(--border-color);
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .status-badge {
+            padding: 5px 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            background: var(--white);
+        }
+
+        .mos-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .mos-table th, .mos-table td {
+            border: 2px solid var(--border-color);
+            padding: 10px;
+            text-align: center;
+            background: var(--white);
+            font-weight: bold;
+        }
+
+        .mos-table th { background: var(--border-color); color: var(--white); }
+
+        .canvas-container {
+            width: 100%;
+            overflow-x: auto;
+            background: var(--white);
+            border: 3px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+        }
+        canvas {
+            width: 100%;
+            height: auto;
+            min-width: 300px;
+        }
+
+        .pros-cons-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        ul { margin-left: 20px; }
+
+        footer {
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .disclaimer-text {
+            font-size: 0.8rem;
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        @media (min-width: 600px) {
+            .result-grid { grid-template-columns: 1fr 1fr; }
+            .pros-cons-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header class="card">
+        <h1>Benjamin Graham Fair Value</h1>
+        <p>Hitung harga wajar saham menggunakan metode Graham Number.</p>
+        <div class="formula-box">
+            Formula: Math.sqrt(22.5 × EPS × BVPS)
+        </div>
+    </header>
+
+    <section class="card card-blue">
+        <h2>Data Saham</h2>
+        <form id="calcForm">
+            <div class="form-group">
+                <label>Nama Saham</label>
+                <input type="text" id="stockName" placeholder="Contoh: Bank Rakyat Indonesia" required>
+            </div>
+            <div class="form-group">
+                <label>Kode Saham</label>
+                <input type="text" id="stockTicker" placeholder="Contoh: BBRI" required>
+            </div>
+            <div class="form-group">
+                <label>Harga Saham Saat Ini (Rp)</label>
+                <input type="text" inputmode="numeric" id="currentPrice" placeholder="Contoh: 2.500 atau 2500" required>
+            </div>
+            <div class="form-group">
+                <label>
+                    EPS TTM
+                    <span class="tooltip">?<span class="tooltiptext">Laba bersih per lembar saham.</span></span>
+                </label>
+                <input type="text" inputmode="numeric" id="eps" placeholder="Contoh: 100" required>
+            </div>
+            <div class="form-group">
+                <label>
+                    BVPS
+                    <span class="tooltip">?<span class="tooltiptext">Nilai buku per lembar saham.</span></span>
+                </label>
+                <input type="text" inputmode="numeric" id="bvps" placeholder="Contoh: 2.000 atau 2000" required>
+            </div>
+            <p class="text-small">💡 Data EPS dan BVPS dapat dilihat pada aplikasi Stockbit atau laporan keuangan emiten.</p>
+            
+            <div class="btn-group">
+                <button type="submit" class="primary">Hitung Harga Wajar</button>
+                <button type="button" class="secondary" id="btnReset">Reset</button>
+            </div>
+        </form>
+    </section>
+
+    <section id="resultSection" class="card card-yellow hidden">
+        <h2>Hasil Valuasi <span id="resTicker"></span></h2>
+        <div class="result-grid">
+            <div class="result-item">
+                <span>Harga Wajar Graham:</span>
+                <span id="resFairValue" style="color: green; font-size: 1.2rem;">Rp 0</span>
+            </div>
+            <div class="result-item">
+                <span>Harga Saat Ini:</span>
+                <span id="resCurrentPrice">Rp 0</span>
+            </div>
+            <div class="result-item">
+                <span>Selisih Harga:</span>
+                <span id="resDiff">Rp 0</span>
+            </div>
+            <div class="result-item">
+                <span>Margin of Safety:</span>
+                <span id="resMosPct">0%</span>
+            </div>
+            <div class="result-item">
+                <span>Potensi Upside:</span>
+                <span id="resUpside">0%</span>
+            </div>
+            <div class="result-item" style="grid-column: 1 / -1; justify-content: center;">
+                <div id="resStatus" class="status-badge">🟢 Status</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="analysisSection" class="card card-green hidden">
+        <h2>Analisis Otomatis</h2>
+        <p id="analysisText"></p>
+    </section>
+
+    <section id="chartSection" class="card card-purple hidden">
+        <h2>Grafik Perbandingan</h2>
+        <div class="canvas-container">
+            <canvas id="valChart" width="600" height="300"></canvas>
+        </div>
+    </section>
+
+    <section id="mosSection" class="card card-blue hidden">
+        <h2>Area Buy Bertahap</h2>
+        <p class="text-small">Berdasarkan Margin of Safety (MOS) dari Harga Wajar Graham:</p>
+        <div style="overflow-x: auto;">
+            <table class="mos-table">
+                <thead>
+                    <tr>
+                        <th>MOS 10%</th>
+                        <th>MOS 20%</th>
+                        <th>MOS 30%</th>
+                        <th>MOS 40%</th>
+                        <th>MOS 50%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td id="mos10">0</td>
+                        <td id="mos20">0</td>
+                        <td id="mos30">0</td>
+                        <td id="mos40">0</td>
+                        <td id="mos50">0</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="card card-pink">
+        <h2>Siapa Benjamin Graham?</h2>
+        <ul>
+            <li>Bapak <i>Value Investing</i>.</li>
+            <li>Mentor dari Warren Buffett.</li>
+            <li>Fokus mencari saham di bawah nilai intrinsiknya.</li>
+            <li>Menekankan <b>Margin of Safety</b>.</li>
+            <li>Mengutamakan perlindungan modal investor.</li>
+        </ul>
+        <br>
+        <h3>Apa itu Graham Number?</h3>
+        <p>Graham Number adalah estimasi harga wajar saham yang menggabungkan laba per saham (EPS) dan nilai buku per saham (BVPS).</p>
+        <div class="formula-box" style="font-size: 0.9rem; margin-top: 10px;">
+            Math.sqrt(22.5 × EPS × BVPS)
+        </div>
+        <p style="margin-top: 10px;" class="text-small">Angka <b>22.5</b> berasal dari: PER maksimum 15 × PBV maksimum 1.5</p>
+    </section>
+
+    <section class="card card-cyan">
+        <h2>Kelebihan & Kekurangan</h2>
+        <div class="pros-cons-grid">
+            <div>
+                <h3>✅ Kelebihan</h3>
+                <ul>
+                    <li>Sangat mudah digunakan.</li>
+                    <li>Data mudah ditemukan di Stockbit.</li>
+                    <li>Cocok untuk investor pemula.</li>
+                    <li>Fokus pada keamanan investasi.</li>
+                </ul>
+            </div>
+            <div>
+                <h3>❌ Kekurangan</h3>
+                <ul>
+                    <li>Kurang cocok untuk saham growth tinggi.</li>
+                    <li>Tidak mempertimbangkan prospek masa depan.</li>
+                    <li>Tidak memperhitungkan kualitas manajemen.</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <footer class="card">
+        <h2>⚠️ DISCLAIMER</h2>
+        <div class="disclaimer-text">
+            <p>Perhitungan harga wajar yang dihasilkan aplikasi ini hanya untuk tujuan edukasi dan referensi.</p>
+            <p>Metode Benjamin Graham tidak menjamin keuntungan investasi dan tidak dapat digunakan sebagai satu-satunya dasar pengambilan keputusan investasi.</p>
+            <p>Pengguna tetap wajib melakukan analisis fundamental, analisis risiko, dan riset mandiri sebelum membeli atau menjual saham. Investasi saham memiliki risiko termasuk kehilangan sebagian atau seluruh modal.</p>
+        </div>
+        <hr style="border: 1px solid var(--border-color); margin: 15px 0;">
+        <p><b>Made with ❤️ for Indonesian Value Investors</b></p>
+        <p class="text-small">Versi 2.0.0 | Update: Juni 2026</p>
+    </footer>
+</div>
+
+<script>
+    // ==========================================
+    // 1. FUNGSI PEMBERSIH INPUT (Sesuai Aturan)
+    // ==========================================
+    function cleanNumber(inputStr) {
+        if (!inputStr) return 0;
+        let str = String(inputStr);
+        // Hapus 'Rp', 'rp', dan spasi
+        str = str.replace(/Rp/ig, '').replace(/\s/g, '');
+        // Hapus titik (sebagai pemisah ribuan)
+        str = str.replace(/\./g, '');
+        // Ubah koma menjadi titik untuk desimal (jika ada input desimal bergaya Indonesia)
+        str = str.replace(/,/g, '.');
+        return Number(str) || 0;
+    }
+
+    // ==========================================
+    // 2. FUNGSI FORMAT TAMPILAN RUPIAH
+    // ==========================================
+    const formatRp = (angka) => {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        }).format(angka);
+    };
+
+    // ==========================================
+    // 3. AUTO TEST VALIDASI INTERNAL
+    // ==========================================
+    function runAutoTest() {
+        console.log("=== MEMULAI AUTO TEST ===");
+        const testPrice = 2500;
+        const testEps = 100;
+        const testBvps = 2000;
+
+        // Rumus murni sesuai instruksi
+        const fv = Math.sqrt(22.5 * testEps * testBvps);
+        const mos = ((fv - testPrice) / fv) * 100;
+        const upside = ((fv - testPrice) / testPrice) * 100;
+
+        // Nilai ekspektasi yang diminta
+        const expectedFv = 2121.32;
+        const expectedMos = -17.85;
+        const expectedUpside = -15.15;
+
+        // Pengecekan dengan pembulatan 2 desimal
+        const fvRounded = Number(fv.toFixed(2));
+        const mosRounded = Number(mos.toFixed(2));
+        const upsideRounded = Number(upside.toFixed(2));
+
+        if (fvRounded === expectedFv && mosRounded === expectedMos && upsideRounded === expectedUpside) {
+            console.log("✅ Auto Test Berhasil: Perhitungan akurat.");
+            console.log(`Input: Price=${testPrice}, EPS=${testEps}, BVPS=${testBvps}`);
+            console.log(`Output: FV=${fvRounded}, MOS=${mosRounded}%, Upside=${upsideRounded}%`);
+        } else {
+            console.error("❌ Auto Test Gagal!");
+            console.error(`Ekspektasi: FV=${expectedFv}, MOS=${expectedMos}, Upside=${expectedUpside}`);
+            console.error(`Hasil: FV=${fvRounded}, MOS=${mosRounded}, Upside=${upsideRounded}`);
+        }
+        console.log("=========================");
+    }
+    
+    // Jalankan auto-test saat aplikasi dimuat
+    runAutoTest();
+
+    // ==========================================
+    // 4. LOGIKA UTAMA APLIKASI
+    // ==========================================
+    const form = document.getElementById('calcForm');
+    const btnReset = document.getElementById('btnReset');
+    const sections = [
+        document.getElementById('resultSection'),
+        document.getElementById('analysisSection'),
+        document.getElementById('chartSection'),
+        document.getElementById('mosSection')
+    ];
+
+    btnReset.addEventListener('click', () => {
+        form.reset();
+        sections.forEach(sec => sec.classList.add('hidden'));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Ambil input dan bersihkan langsung menjadi Number murni
+        const ticker = document.getElementById('stockTicker').value.toUpperCase();
+        const rawPriceInput = document.getElementById('currentPrice').value;
+        const rawEpsInput = document.getElementById('eps').value;
+        const rawBvpsInput = document.getElementById('bvps').value;
+
+        const price = cleanNumber(rawPriceInput);
+        const eps = cleanNumber(rawEpsInput);
+        const bvps = cleanNumber(rawBvpsInput);
+
+        // Validasi Negatif
+        if (price < 0 || eps < 0 || bvps < 0) {
+            alert("Nilai tidak boleh negatif!");
+            return;
+        }
+
+        // Kalkulasi murni
+        let fairValue = 0;
+        if (eps > 0 && bvps > 0) {
+            fairValue = Math.sqrt(22.5 * eps * bvps);
+        }
+
+        const mosPct = fairValue > 0 ? ((fairValue - price) / fairValue) * 100 : 0;
+        const upsidePct = price > 0 ? ((fairValue - price) / price) * 100 : 0;
+        const diff = fairValue - price;
+
+        // Debug Mode
+        console.log("=== DEBUG MODE ===");
+        console.log("Harga Saat Ini :", price);
+        console.log("EPS            :", eps);
+        console.log("BVPS           :", bvps);
+        console.log("Harga Wajar    :", fairValue);
+        console.log("MOS            :", mosPct);
+        console.log("Upside         :", upsidePct);
+        console.log("==================");
+
+        // Kategori Valuasi
+        const ratio = fairValue > 0 ? price / fairValue : Infinity;
+        let statusText = "";
+        let statusColor = "";
+        let analysisStr = "";
+
+        if (eps === 0 || bvps === 0) {
+            statusText = "🔴 Tidak Valid";
+            statusColor = "var(--danger)";
+            analysisStr = "Saham ini memiliki nilai buku atau EPS nol. Metode Benjamin Graham tidak dapat diterapkan.";
+        } else if (ratio < 0.70) {
+            statusText = "🟢 Sangat Murah (Deep Undervalued)";
+            statusColor = "var(--pastel-green)";
+            analysisStr = `Saham diperdagangkan di bawah estimasi nilai wajarnya menurut metode Benjamin Graham. Potensi kenaikan masih cukup menarik dengan Margin of Safety positif sehingga layak masuk watchlist investor value.`;
+        } else if (ratio >= 0.70 && ratio <= 0.90) {
+            statusText = "🟢 Murah (Undervalued)";
+            statusColor = "var(--pastel-green)";
+            analysisStr = `Saham diperdagangkan di bawah estimasi nilai wajarnya menurut metode Benjamin Graham. Potensi kenaikan masih cukup menarik dengan Margin of Safety positif sehingga layak masuk watchlist investor value.`;
+        } else if (ratio > 0.90 && ratio <= 1.10) {
+            statusText = "🟡 Wajar (Fair Value)";
+            statusColor = "var(--pastel-yellow)";
+            analysisStr = `Harga saham saat ini berada di sekitar estimasi nilai wajarnya. Risiko sebanding dengan potensi kenaikan.`;
+        } else if (ratio > 1.10 && ratio <= 1.30) {
+            statusText = "🟠 Mahal (Overvalued)";
+            statusColor = "#fdba74";
+            analysisStr = `Harga saham saat ini telah berada di atas estimasi nilai wajarnya sehingga Margin of Safety menjadi negatif. Investor perlu lebih berhati-hati.`;
+        } else {
+            statusText = "🔴 Sangat Mahal (Highly Overvalued)";
+            statusColor = "var(--danger)";
+            analysisStr = `Harga saham saat ini telah berada sangat jauh di atas estimasi nilai wajarnya sehingga Margin of Safety menjadi sangat negatif. Investor perlu lebih berhati-hati.`;
+        }
+
+        // Tampilkan Hasil ke UI (Menggunakan formatRp untuk visual)
+        document.getElementById('resTicker').innerText = `(${ticker})`;
+        document.getElementById('resFairValue').innerText = formatRp(fairValue);
+        document.getElementById('resCurrentPrice').innerText = formatRp(price);
+        
+        const resDiffEl = document.getElementById('resDiff');
+        resDiffEl.innerText = formatRp(diff);
+        resDiffEl.style.color = diff >= 0 ? 'green' : 'red';
+
+        const resMosEl = document.getElementById('resMosPct');
+        resMosEl.innerText = mosPct.toFixed(2) + "%";
+        resMosEl.style.color = mosPct >= 0 ? 'green' : 'red';
+
+        const resUpsideEl = document.getElementById('resUpside');
+        resUpsideEl.innerText = upsidePct.toFixed(2) + "%";
+        resUpsideEl.style.color = upsidePct >= 0 ? 'green' : 'red';
+
+        const resStatusEl = document.getElementById('resStatus');
+        resStatusEl.innerText = statusText;
+        resStatusEl.style.backgroundColor = statusColor;
+
+        document.getElementById('analysisText').innerHTML = analysisStr;
+
+        // Tabel MOS
+        document.getElementById('mos10').innerText = formatRp(fairValue * 0.90);
+        document.getElementById('mos20').innerText = formatRp(fairValue * 0.80);
+        document.getElementById('mos30').innerText = formatRp(fairValue * 0.70);
+        document.getElementById('mos40').innerText = formatRp(fairValue * 0.60);
+        document.getElementById('mos50').innerText = formatRp(fairValue * 0.50);
+
+        // Gambar Grafik
+        drawChart(price, fairValue, ticker);
+
+        // Tampilkan semua seksi yang disembunyikan
+        sections.forEach(sec => sec.classList.remove('hidden'));
+        document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // ==========================================
+    // 5. RENDER GRAFIK CANVAS
+    // ==========================================
+    function drawChart(price, fv, ticker) {
+        const canvas = document.getElementById('valChart');
+        const ctx = canvas.getContext('2d');
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const w = canvas.width;
+        const h = canvas.height;
+        const paddingBottom = 40;
+        const paddingTop = 50;
+        const maxH = h - paddingBottom - paddingTop;
+        
+        const maxVal = Math.max(price, fv) * 1.2;
+        if(maxVal === 0) return;
+
+        const priceH = (price / maxVal) * maxH;
+        const fvH = (fv / maxVal) * maxH;
+
+        const barW = 120;
+        const gap = 100;
+        const startX = (w - (barW * 2 + gap)) / 2;
+
+        function drawBar(x, y, width, height, color, label, valNum) {
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(x + 8, y + 8, width, height);
+            
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, width, height);
+            
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x, y, width, height);
+
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 16px Courier New';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, x + width/2, y + height + 25);
+
+            ctx.font = 'bold 14px Courier New';
+            const textVal = formatRp(valNum);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(x + width/2 - 70, y - 35, 140, 25);
+            ctx.strokeRect(x + width/2 - 70, y - 35, 140, 25);
+            ctx.fillStyle = '#000000';
+            ctx.fillText(textVal, x + width/2, y - 17);
+        }
+
+        const priceColor = price > fv ? '#fca5a5' : '#bbf7d0';
+        drawBar(startX, paddingTop + maxH - priceH, barW, priceH, priceColor, 'Harga Pasar', price);
+        drawBar(startX + barW + gap, paddingTop + maxH - fvH, barW, fvH, '#bae6fd', 'Harga Wajar', fv);
+
+        ctx.beginPath();
+        ctx.moveTo(20, paddingTop + maxH + 3);
+        ctx.lineTo(w - 20, paddingTop + maxH + 3);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#000000';
+        ctx.stroke();
+    }
+</script>
+
+</body>
+</html>
