@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-     <!-- ==========================================================
+  <!-- ==========================================================
          [KODE IKLAN] 1. GOOGLE TAG MANAGER (HEAD)
          Ganti atau hapus bagian ini jika GTM kamu berubah.
          ========================================================== -->
@@ -273,7 +273,7 @@
     </style>
 </head>
 <body>
- <!-- ==========================================================
+  <!-- ==========================================================
          [KODE IKLAN] 2. IKLAN BANNER ATAS / KECIL (320x50)
          Jika ingin mengganti iklan ini, tukar kode 'key' dan link 'src' 
          dengan script iklan banner baru Anda.
@@ -288,6 +288,7 @@
   };
 </script>
 <script src="https://www.highperformanceformat.com/4bdf5934fbcc673c0903056a82390f69/invoke.js"></script>
+
 
 <div class="container">
     <header class="card">
@@ -353,6 +354,7 @@
 <script src="https://www.highperformanceformat.com/436915a4bd96a52683bbaa9777d5c710/invoke.js"></script>
 
       </div>
+    
     
     <section id="resultSection" class="card card-yellow hidden">
         <h2>Hasil Valuasi <span id="resTicker"></span></h2>
@@ -481,15 +483,52 @@
     // 1. FUNGSI PEMBERSIH INPUT (Sesuai Aturan)
     // ==========================================
     function cleanNumber(inputStr) {
-        if (!inputStr) return 0;
-        let str = String(inputStr);
-        // Hapus 'Rp', 'rp', dan spasi
-        str = str.replace(/Rp/ig, '').replace(/\s/g, '');
-        // Hapus titik (sebagai pemisah ribuan)
-        str = str.replace(/\./g, '');
-        // Ubah koma menjadi titik untuk desimal (jika ada input desimal bergaya Indonesia)
-        str = str.replace(/,/g, '.');
-        return Number(str) || 0;
+        if (inputStr === null || inputStr === undefined || inputStr === '') return NaN;
+        
+        let str = String(inputStr).replace(/Rp/ig, '').trim();
+        str = str.replace(/\s/g, ''); 
+        
+        if (str === '') return NaN;
+
+        let isNegative = str.startsWith('-');
+        if (isNegative) {
+            str = str.substring(1);
+        }
+
+        let dots = str.split('.').length - 1;
+        let commas = str.split(',').length - 1;
+
+        if (dots > 0 && commas > 0) {
+            if (str.lastIndexOf('.') > str.lastIndexOf(',')) {
+                str = str.replace(/,/g, '');
+            } else {
+                str = str.replace(/\./g, '').replace(',', '.');
+            }
+        } else if (dots > 0) {
+            if (dots > 1) {
+                str = str.replace(/\./g, '');
+            } else {
+                let parts = str.split('.');
+                if (parts[1].length === 3) {
+                    str = str.replace(/\./g, '');
+                }
+            }
+        } else if (commas > 0) {
+            if (commas > 1) {
+                str = str.replace(/,/g, '');
+            } else {
+                let parts = str.split(',');
+                if (parts[1].length === 3) {
+                    str = str.replace(/,/g, '');
+                } else {
+                    str = str.replace(',', '.');
+                }
+            }
+        }
+
+        let num = Number(str);
+        if (isNaN(num)) return NaN;
+        return isNegative ? -num : num;
     }
 
     // ==========================================
@@ -564,30 +603,45 @@
     form.addEventListener('submit', function(e) {
         e.preventDefault();
 
-        // Ambil input dan bersihkan langsung menjadi Number murni
         const ticker = document.getElementById('stockTicker').value.toUpperCase();
-        const rawPriceInput = document.getElementById('currentPrice').value;
-        const rawEpsInput = document.getElementById('eps').value;
-        const rawBvpsInput = document.getElementById('bvps').value;
+        const rawPriceInput = document.getElementById('currentPrice').value.trim();
+        const rawEpsInput = document.getElementById('eps').value.trim();
+        const rawBvpsInput = document.getElementById('bvps').value.trim();
+
+        // Validasi Kekosongan Data
+        if (!rawPriceInput || !rawEpsInput || !rawBvpsInput || !ticker) {
+            alert("Masukkan semua data terlebih dahulu.");
+            return;
+        }
 
         const price = cleanNumber(rawPriceInput);
         const eps = cleanNumber(rawEpsInput);
         const bvps = cleanNumber(rawBvpsInput);
 
-        // Validasi Negatif
-        if (price < 0 || eps < 0 || bvps < 0) {
-            alert("Nilai tidak boleh negatif!");
+        // Validasi Format Angka
+        if (isNaN(price) || isNaN(eps) || isNaN(bvps)) {
+            alert("Format angka tidak valid.");
             return;
         }
 
-        // Kalkulasi murni
-        let fairValue = 0;
-        if (eps > 0 && bvps > 0) {
-            fairValue = Math.sqrt(22.5 * eps * bvps);
+        // Validasi Logika Saham
+        if (price <= 0) {
+            alert("Harga saham harus lebih besar dari nol.");
+            return;
+        }
+        if (bvps <= 0) {
+            alert("BVPS harus lebih besar dari nol.");
+            return;
+        }
+        if (eps <= 0) {
+            alert("Graham Number tidak dapat dihitung karena EPS bernilai nol atau negatif. Metode Benjamin Graham hanya berlaku untuk perusahaan yang menghasilkan laba positif.");
+            return; 
         }
 
-        const mosPct = fairValue > 0 ? ((fairValue - price) / fairValue) * 100 : 0;
-        const upsidePct = price > 0 ? ((fairValue - price) / price) * 100 : 0;
+        // Kalkulasi murni (Semua angka dipastikan positif saat masuk rumus ini)
+        const fairValue = Math.sqrt(22.5 * eps * bvps);
+        const mosPct = ((fairValue - price) / fairValue) * 100;
+        const upsidePct = ((fairValue - price) / price) * 100;
         const diff = fairValue - price;
 
         // Debug Mode
@@ -601,16 +655,12 @@
         console.log("==================");
 
         // Kategori Valuasi
-        const ratio = fairValue > 0 ? price / fairValue : Infinity;
+        const ratio = price / fairValue;
         let statusText = "";
         let statusColor = "";
         let analysisStr = "";
 
-        if (eps === 0 || bvps === 0) {
-            statusText = "🔴 Tidak Valid";
-            statusColor = "var(--danger)";
-            analysisStr = "Saham ini memiliki nilai buku atau EPS nol. Metode Benjamin Graham tidak dapat diterapkan.";
-        } else if (ratio < 0.70) {
+        if (ratio < 0.70) {
             statusText = "🟢 Sangat Murah (Deep Undervalued)";
             statusColor = "var(--pastel-green)";
             analysisStr = `Saham diperdagangkan di bawah estimasi nilai wajarnya menurut metode Benjamin Graham. Potensi kenaikan masih cukup menarik dengan Margin of Safety positif sehingga layak masuk watchlist investor value.`;
@@ -632,7 +682,7 @@
             analysisStr = `Harga saham saat ini telah berada sangat jauh di atas estimasi nilai wajarnya sehingga Margin of Safety menjadi sangat negatif. Investor perlu lebih berhati-hati.`;
         }
 
-        // Tampilkan Hasil ke UI (Menggunakan formatRp untuk visual)
+        // Tampilkan Hasil ke UI
         document.getElementById('resTicker').innerText = `(${ticker})`;
         document.getElementById('resFairValue').innerText = formatRp(fairValue);
         document.getElementById('resCurrentPrice').innerText = formatRp(price);
@@ -733,6 +783,7 @@
         ctx.stroke();
     }
 </script>
+ </script>
   <!-- ==========================================================
          [KODE IKLAN] 4. IKLAN POPUNDER (DENGAN SISTEM CAPPING 1X)
          Jika ingin mengganti iklan Popunder ini, cukup ganti link url 
